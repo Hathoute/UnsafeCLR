@@ -1,0 +1,62 @@
+﻿name: .NET Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ 'ubuntu-latest', 'windows-latest', 'macos-latest' ]
+        versions: [ '6.0.x:net6.0', '7.0.x:net7.0', '8.0.x:net8.0' ]
+        exclude:
+          # net6.0 on ARM64 architecture is not supported
+          - os: 'macos-latest'
+            versions: '6.0.x:net6.0'
+
+    steps:
+      - name: Extract .NET version and framework
+        if: matrix.os != 'windows-latest'
+        run: |
+          IFS=":" read -r VERSION FRAMEWORK <<< "${{ matrix.versions }}"
+          echo "dotnet-version=$VERSION" >> "$GITHUB_ENV"
+          echo "framework=$FRAMEWORK" >> "$GITHUB_ENV"
+          
+      - name: Extract .NET version and framework (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          $split = "${{ matrix.versions }}" -split ":"
+          $VERSION=$split[0]
+          $FRAMEWORK=$split[1]
+          echo "dotnet-version=$VERSION" >> $env:GITHUB_ENV
+          echo "framework=$FRAMEWORK" >> $env:GITHUB_ENV
+          
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.dotnet-version }} SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.dotnet-version }}
+
+      - name: Setup .NET 8 SDK (builder)
+        if: env.dotnet-version != '8.0.x'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore -p:TargetFramework=${{ env.framework }}
+
+      - name: Build all target frameworks
+        run: dotnet build --configuration Release --no-restore -p:TargetFramework=${{ env.framework }}
+
+      - name: Run tests
+        run: dotnet test Tests --configuration Release --no-build --verbosity normal --framework ${{ env.framework }}
