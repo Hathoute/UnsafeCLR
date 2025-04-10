@@ -7,4 +7,16 @@
         <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
     </PropertyGroup>
 
+    <ItemGroup>
+      <Compile Remove="Tests\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="Tests\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Tests\**" />
+    </ItemGroup>
+
 </Project>

@@ -1,6 +1,8 @@
 ﻿using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using UnsafeCLR.Architecture;
 using UnsafeCLR.CLR.Method;
 using UnsafeCLR.CLR.Type;
 
@@ -8,6 +10,16 @@ namespace UnsafeCLR;
 
 public static class CLRHelper {
 
+    static readonly IInstructionPatcher instructionPatcher;
+    
+    static CLRHelper() {
+        instructionPatcher = RuntimeInformation.ProcessArchitecture switch {
+            System.Runtime.InteropServices.Architecture.X64 => new InstructionPatcherX64(),
+            System.Runtime.InteropServices.Architecture.Arm64 => new InstructionPatcherArm64(),
+            _ => throw new NotImplementedException($"Architecture {RuntimeInformation.ProcessArchitecture} is not supported")
+        };
+    }
+    
     public static MethodBase GetMethodBase(MethodInfo methodInfo) {
         if (methodInfo.DeclaringType == null) {
             throw new NotImplementedException("GetMethodBase");
@@ -32,7 +44,7 @@ public static class CLRHelper {
         ReplaceMethodInternal(dynamicOriginalMethod, originalMethod);
         var replacement = ReplaceMethodInternal(originalMethod, replacingMethod);
         
-        return new MethodReplacement(dynamicOriginalMethod, replacement[0], replacement[1]);
+        return new MethodReplacement(dynamicOriginalMethod, replacement[0], replacement[1], instructionPatcher);
     }
 
     public static MethodReplacement ReplaceStaticMethod(MethodInfo originalMethod, MethodInfo replacingMethod) {
@@ -47,7 +59,7 @@ public static class CLRHelper {
         ReplaceMethodInternal(dynamicOriginalMethod, originalMethod);
         var replacement = ReplaceMethodInternal(originalMethod, replacingMethod);
 
-        return new MethodReplacement(dynamicOriginalMethod, replacement[0], replacement[1]);
+        return new MethodReplacement(dynamicOriginalMethod, replacement[0], replacement[1], instructionPatcher);
     }
     
     private static unsafe IntPtr[] ReplaceMethodInternal(MethodInfo srcMethod, MethodInfo dstMethod) {
@@ -69,13 +81,13 @@ public static class CLRHelper {
         
         var srcMethodDesc = MethodDescOfMethod(srcMethod);
         var srcJmpInstruction = *(IntPtr*)srcMethodDesc.GetAddrOfSlot();
-        var srcOriginalJmpAddress = UnsafeOperations.GetJmpAbsoluteAddress(srcJmpInstruction);
+        var srcOriginalJmpAddress = instructionPatcher.FindJumpAbsoluteAddress(srcJmpInstruction);
         
         var dstMethodDesc = MethodDescOfMethod(dstMethod);
         var dstJmpInstruction = *(IntPtr*) dstMethodDesc.GetAddrOfSlot();
-        var dstNativeFuncAbsoluteAddr = UnsafeOperations.GetJmpAbsoluteAddress(dstJmpInstruction);
+        var dstNativeFuncAbsoluteAddr = instructionPatcher.FindJumpAbsoluteAddress(dstJmpInstruction);
         
-        UnsafeOperations.PatchJumpWithAbsoluteAddress(srcJmpInstruction, dstNativeFuncAbsoluteAddr);
+        instructionPatcher.PatchJumpWithAbsoluteAddress(srcJmpInstruction, dstNativeFuncAbsoluteAddr);
         
         return new [] {srcJmpInstruction, srcOriginalJmpAddress};
     }
@@ -117,10 +129,11 @@ public static class CLRHelper {
         var dynamicMethod = new DynamicMethod("MethodName", MethodAttributes.Public | MethodAttributes.Static,
             CallingConventions.Standard, clone.ReturnType, parameters, typeof(CLRHelper), true);
         var il = dynamicMethod.GetILGenerator();
-        il.Emit(OpCodes.Nop);
-        il.Emit(OpCodes.Nop);
-        il.Emit(OpCodes.Nop);
-        il.Emit(OpCodes.Nop);
+        if (clone.ReturnType != typeof(void)) {
+            // Produce a valid object to return 
+            il.Emit(OpCodes.Ldnull);
+        }
+        
         il.Emit(OpCodes.Ret);
         return dynamicMethod;
     }
@@ -165,11 +178,13 @@ public sealed class MethodReplacement : IDisposable {
 
     private readonly IntPtr _methodJmpAddress;
     private readonly IntPtr _originalMethodImpl;
+    private readonly IInstructionPatcher _instructionPatcher;
 
-    internal MethodReplacement(DynamicMethod originalMethod, IntPtr methodJmpAddress, IntPtr originalMethodImpl) {
+    internal MethodReplacement(DynamicMethod originalMethod, IntPtr methodJmpAddress, IntPtr originalMethodImpl, IInstructionPatcher instructionPatcher) {
         _methodJmpAddress = methodJmpAddress;
         _originalMethodImpl = originalMethodImpl;
         OriginalMethod = originalMethod;
+        _instructionPatcher = instructionPatcher;
     }
 
     public DynamicMethod OriginalMethod {
@@ -177,64 +192,6 @@ public sealed class MethodReplacement : IDisposable {
     }
 
     public void Dispose() {
-        UnsafeOperations.PatchJumpWithAbsoluteAddress(_methodJmpAddress, _originalMethodImpl);
-    }
-}
-
-static unsafe class UnsafeOperations {
-
-    internal static T Read<T>(IntPtr address, int offset = 0) where T : struct {
-        return *(T*)(address + offset);
-    }
-
-    internal static IntPtr GetJmpAbsoluteAddress(IntPtr jmpInstructionAddr) {
-        var instruction = Read<byte>(jmpInstructionAddr);
-        switch (instruction) {
-            case 0xE9:  // jump relative
-                var relativeOffset = Read<int>(jmpInstructionAddr + 1);
-                return IntPtr.Add(jmpInstructionAddr, relativeOffset + 5);
-            case 0xFF:  // jump far
-                var addressPtr = GetJumpFarAbsoluteIndirectAddress(jmpInstructionAddr);
-                return *addressPtr;
-            default:
-                throw new ArgumentException("jmpInstructionAddr does not point to a JMP instruction");
-        }
-    }
-
-    internal static void PatchJumpWithAbsoluteAddress(IntPtr jmpInstructionAddr, IntPtr jmpAddress) {
-        var instruction = Read<byte>(jmpInstructionAddr);
-        switch (instruction) {
-            case 0xE9:
-                var displacementFromJmpToAddr = GetJmpRelativeAddress(jmpInstructionAddr, jmpAddress);
-                var displacementPtr = (int*) IntPtr.Add(jmpInstructionAddr, 1);
-                *displacementPtr = displacementFromJmpToAddr;
-                break;
-            case 0xFF:
-                var addressPtr = GetJumpFarAbsoluteIndirectAddress(jmpInstructionAddr);
-                *addressPtr = jmpAddress;
-                break;
-            default:
-                throw new ArgumentException("jmpInstructionAddr does not point to a JMP instruction");
-        }
-    }
-
-    private static int GetJmpRelativeAddress(IntPtr jmpInstructionAddr, IntPtr jmpAddress) {
-        var displacement = jmpAddress.ToInt64() - jmpInstructionAddr.ToInt64() - 5;
-        if (displacement is > int.MaxValue or < int.MinValue) {
-            throw new OverflowException("displacement cannot be cast to int");
-        }
-
-        return (int) displacement;
-    }
-
-    private static IntPtr* GetJumpFarAbsoluteIndirectAddress(IntPtr jmpInstructionAddr) {
-        // Return the pointer to the address that the jmp instruction dereferences to jump to.
-        var modRM = Read<byte>(jmpInstructionAddr + 1);
-        if ((modRM & 0b111) != 5) {
-            throw new ArgumentException(
-                "Expecting ModRM of FF instruction to be 5 (Jump far, absolute indirect)");
-        }
-        var ptrRelativeOffset = Read<int>(jmpInstructionAddr + 2);
-        return (IntPtr*)(jmpInstructionAddr + 6 + ptrRelativeOffset);
+        _instructionPatcher.PatchJumpWithAbsoluteAddress(_methodJmpAddress, _originalMethodImpl);
     }
 }
