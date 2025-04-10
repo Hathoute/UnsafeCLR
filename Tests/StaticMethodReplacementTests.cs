@@ -23,8 +23,8 @@ public class StaticMethodReplacementTests : IDisposable {
     
     [Fact]
     public void TestMethodCalls() {
-        OriginalMethods.Action();
-        ReplacingMethods.Action();
+        OriginalStaticMethods.Action();
+        ReplacingStaticMethods.Action();
         
         OriginalMock.Verify(m => m.Action(), Times.Once);
         ReplacingMock.Verify(m => m.Action(), Times.Once);
@@ -32,9 +32,9 @@ public class StaticMethodReplacementTests : IDisposable {
 
     [Fact]
     public void TestReplaceActionMethod() {
-        using (CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo(OriginalMethods.Action), TestHelpers.GetMethodInfo(ReplacingMethods.Action))) {
-            OriginalMethods.Action();
-            ReplacingMethods.Action();
+        using (CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo(OriginalStaticMethods.Action), TestHelpers.GetMethodInfo(ReplacingStaticMethods.Action))) {
+            OriginalStaticMethods.Action();
+            ReplacingStaticMethods.Action();
         }
         
         OriginalMock.Verify(m => m.Action(), Times.Never);
@@ -43,7 +43,7 @@ public class StaticMethodReplacementTests : IDisposable {
 
     [Fact]
     public void TestReplaceCallOriginalMethod() {
-        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo(OriginalMethods.Action), TestHelpers.GetMethodInfo(ReplacingMethods.Action))) {
+        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo(OriginalStaticMethods.Action), TestHelpers.GetMethodInfo(ReplacingStaticMethods.Action))) {
             replacement.OriginalMethod.Invoke(null, null);
         }
         
@@ -53,9 +53,9 @@ public class StaticMethodReplacementTests : IDisposable {
 
     [Fact]
     public void TestReplaceActionWithPrimitive() {
-        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<int>(OriginalMethods.ActionWithPrimitive), TestHelpers.GetMethodInfo<int>(ReplacingMethods.ActionWithPrimitive))) {
-            OriginalMethods.ActionWithPrimitive(1);
-            ReplacingMethods.ActionWithPrimitive(2);
+        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<int>(OriginalStaticMethods.ActionWithPrimitive), TestHelpers.GetMethodInfo<int>(ReplacingStaticMethods.ActionWithPrimitive))) {
+            OriginalStaticMethods.ActionWithPrimitive(1);
+            ReplacingStaticMethods.ActionWithPrimitive(2);
             replacement.OriginalMethod.Invoke(null, new object[] { 3 });
         }
         
@@ -70,9 +70,9 @@ public class StaticMethodReplacementTests : IDisposable {
         var param2 = new RandomNumberObject();
         var param3 = new RandomNumberObject();
         
-        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<object>(OriginalMethods.ActionWithObject), TestHelpers.GetMethodInfo<object>(ReplacingMethods.ActionWithObject))) {
-            OriginalMethods.ActionWithObject(param1);
-            ReplacingMethods.ActionWithObject(param2);
+        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<object>(OriginalStaticMethods.ActionWithObject), TestHelpers.GetMethodInfo<object>(ReplacingStaticMethods.ActionWithObject))) {
+            OriginalStaticMethods.ActionWithObject(param1);
+            ReplacingStaticMethods.ActionWithObject(param2);
             replacement.OriginalMethod.Invoke(null, new object[] { param3 });
         }
         
@@ -83,9 +83,9 @@ public class StaticMethodReplacementTests : IDisposable {
     
     [Fact]
     public void TestReplaceActionWithParameters() {
-        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<int, string>(OriginalMethods.ActionWithParameters), TestHelpers.GetMethodInfo<int, string>(ReplacingMethods.ActionWithParameters))) {
-            OriginalMethods.ActionWithParameters(1, "original");
-            ReplacingMethods.ActionWithParameters(2, "replacement");
+        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<int, string>(OriginalStaticMethods.ActionWithParameters), TestHelpers.GetMethodInfo<int, string>(ReplacingStaticMethods.ActionWithParameters))) {
+            OriginalStaticMethods.ActionWithParameters(1, "original");
+            ReplacingStaticMethods.ActionWithParameters(2, "replacement");
             replacement.OriginalMethod.Invoke(null, new object[] { 3, "invoke" });
         }
         
@@ -99,9 +99,9 @@ public class StaticMethodReplacementTests : IDisposable {
         OriginalMock.Setup(m => m.Func()).Returns("original");
         ReplacingMock.Setup(m => m.Func()).Returns("replacing");
         
-        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo(OriginalMethods.Func), TestHelpers.GetMethodInfo(ReplacingMethods.Func))) {
-            Assert.Equal("replacing", OriginalMethods.Func());
-            Assert.Equal("replacing", ReplacingMethods.Func());
+        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo(OriginalStaticMethods.Func), TestHelpers.GetMethodInfo(ReplacingStaticMethods.Func))) {
+            Assert.Equal("replacing", OriginalStaticMethods.Func());
+            Assert.Equal("replacing", ReplacingStaticMethods.Func());
             Assert.Equal("original", replacement.OriginalMethod.Invoke(null, null));
         }
         
@@ -114,9 +114,9 @@ public class StaticMethodReplacementTests : IDisposable {
         OriginalMock.Setup(m => m.FuncWithPrimitive(It.IsAny<int>())).Returns(1);
         ReplacingMock.Setup(m => m.FuncWithPrimitive(It.IsAny<int>())).Returns(2);
         
-        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<int, int>(OriginalMethods.FuncWithPrimitive), TestHelpers.GetMethodInfo<int, int>(ReplacingMethods.FuncWithPrimitive))) {
-            Assert.Equal(2, OriginalMethods.FuncWithPrimitive(1));
-            Assert.Equal(2, ReplacingMethods.FuncWithPrimitive(2));
+        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<int, int>(OriginalStaticMethods.FuncWithPrimitive), TestHelpers.GetMethodInfo<int, int>(ReplacingStaticMethods.FuncWithPrimitive))) {
+            Assert.Equal(2, OriginalStaticMethods.FuncWithPrimitive(1));
+            Assert.Equal(2, ReplacingStaticMethods.FuncWithPrimitive(2));
             Assert.Equal(1, replacement.OriginalMethod.Invoke(null, new object[] { 3 }));
         }
         
@@ -134,9 +134,9 @@ public class StaticMethodReplacementTests : IDisposable {
         OriginalMock.Setup(m => m.FuncWithObject(It.IsAny<object>())).Returns("original");
         ReplacingMock.Setup(m => m.FuncWithObject(It.IsAny<object>())).Returns("replacing");
         
-        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<object, string>(OriginalMethods.FuncWithObject), TestHelpers.GetMethodInfo<object, string>(ReplacingMethods.FuncWithObject))) {
-            Assert.Equal("replacing", OriginalMethods.FuncWithObject(param1));
-            Assert.Equal("replacing", ReplacingMethods.FuncWithObject(param2));
+        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<object, string>(OriginalStaticMethods.FuncWithObject), TestHelpers.GetMethodInfo<object, string>(ReplacingStaticMethods.FuncWithObject))) {
+            Assert.Equal("replacing", OriginalStaticMethods.FuncWithObject(param1));
+            Assert.Equal("replacing", ReplacingStaticMethods.FuncWithObject(param2));
             Assert.Equal("original", replacement.OriginalMethod.Invoke(null, new object[] { param3 }));
         }
         
@@ -150,9 +150,9 @@ public class StaticMethodReplacementTests : IDisposable {
         OriginalMock.Setup(m => m.FuncWithParameters(It.IsAny<int>(), It.IsAny<string>())).Returns("original");
         ReplacingMock.Setup(m => m.FuncWithParameters(It.IsAny<int>(), It.IsAny<string>())).Returns("replacing");
         
-        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<int, string, string>(OriginalMethods.FuncWithParameters), TestHelpers.GetMethodInfo<int, string, string>(ReplacingMethods.FuncWithParameters))) {
-            Assert.Equal("replacing", OriginalMethods.FuncWithParameters(1, "original"));
-            Assert.Equal("replacing", ReplacingMethods.FuncWithParameters(2, "replacement"));
+        using (var replacement = CLRHelper.ReplaceStaticMethod(TestHelpers.GetMethodInfo<int, string, string>(OriginalStaticMethods.FuncWithParameters), TestHelpers.GetMethodInfo<int, string, string>(ReplacingStaticMethods.FuncWithParameters))) {
+            Assert.Equal("replacing", OriginalStaticMethods.FuncWithParameters(1, "original"));
+            Assert.Equal("replacing", ReplacingStaticMethods.FuncWithParameters(2, "replacement"));
             Assert.Equal("original", replacement.OriginalMethod.Invoke(null, new object[] { 3, "invoke" }));
         }
         
@@ -160,91 +160,80 @@ public class StaticMethodReplacementTests : IDisposable {
         ReplacingMock.Verify(m => m.FuncWithParameters(2, "replacement"));
         OriginalMock.Verify(m => m.FuncWithParameters(3, "invoke"));
     }
-}
-
-public interface IMethods {
-    void Action();
-    void ActionWithPrimitive(int param1);
-    void ActionWithObject(object param1);
-    void ActionWithParameters(int param1, string param2);
-
-    string Func();
-    int FuncWithPrimitive(int param1);
-    string FuncWithObject(object param1);
-    string FuncWithParameters(int param1, string param2);
-}
-
-public static class OriginalMethods {
     
-    private static IMethods _delegate => StaticMethodReplacementTests.OriginalMock.Object;
-    
-    public static void Action() {
-        _delegate.Action();
+        
+    private static class OriginalStaticMethods {
+        
+        private static IMethods _delegate => OriginalMock.Object;
+        
+        public static void Action() {
+            _delegate.Action();
+        }
+
+        public static void ActionWithPrimitive(int param1) {
+            _delegate.ActionWithPrimitive(param1);
+        }
+
+        public static void ActionWithObject(object param1) {
+            _delegate.ActionWithObject(param1);
+        }
+
+        public static void ActionWithParameters(int param1, string param2) {
+            _delegate.ActionWithParameters(param1, param2);
+        }
+
+        public static string Func() {
+            return _delegate.Func();
+        }
+
+        public static int FuncWithPrimitive(int param1) {
+            return _delegate.FuncWithPrimitive(param1);
+        }
+
+        public static string FuncWithObject(object param1) {
+            return _delegate.FuncWithObject(param1);
+        }
+
+        public static string FuncWithParameters(int param1, string param2) {
+            return _delegate.FuncWithParameters(param1, param2);
+        }
     }
 
-    public static void ActionWithPrimitive(int param1) {
-        _delegate.ActionWithPrimitive(param1);
-    }
 
-    public static void ActionWithObject(object param1) {
-        _delegate.ActionWithObject(param1);
-    }
+    private static class ReplacingStaticMethods {
+        
+        private static IMethods _delegate => ReplacingMock.Object;
+        
+        public static void Action() {
+            _delegate.Action();
+        }
 
-    public static void ActionWithParameters(int param1, string param2) {
-        _delegate.ActionWithParameters(param1, param2);
-    }
+        public static void ActionWithPrimitive(int param1) {
+            _delegate.ActionWithPrimitive(param1);
+        }
 
-    public static string Func() {
-        return _delegate.Func();
-    }
+        public static void ActionWithObject(object param1) {
+            _delegate.ActionWithObject(param1);
+        }
 
-    public static int FuncWithPrimitive(int param1) {
-        return _delegate.FuncWithPrimitive(param1);
-    }
+        public static void ActionWithParameters(int param1, string param2) {
+            _delegate.ActionWithParameters(param1, param2);
+        }
 
-    public static string FuncWithObject(object param1) {
-        return _delegate.FuncWithObject(param1);
-    }
+        public static string Func() {
+            return _delegate.Func();
+        }
 
-    public static string FuncWithParameters(int param1, string param2) {
-        return _delegate.FuncWithParameters(param1, param2);
-    }
-}
+        public static int FuncWithPrimitive(int param1) {
+            return _delegate.FuncWithPrimitive(param1);
+        }
 
+        public static string FuncWithObject(object param1) {
+            return _delegate.FuncWithObject(param1);
+        }
 
-public static class ReplacingMethods {
-    
-    private static IMethods _delegate => StaticMethodReplacementTests.ReplacingMock.Object;
-    
-    public static void Action() {
-        _delegate.Action();
-    }
-
-    public static void ActionWithPrimitive(int param1) {
-        _delegate.ActionWithPrimitive(param1);
-    }
-
-    public static void ActionWithObject(object param1) {
-        _delegate.ActionWithObject(param1);
-    }
-
-    public static void ActionWithParameters(int param1, string param2) {
-        _delegate.ActionWithParameters(param1, param2);
-    }
-
-    public static string Func() {
-        return _delegate.Func();
-    }
-
-    public static int FuncWithPrimitive(int param1) {
-        return _delegate.FuncWithPrimitive(param1);
-    }
-
-    public static string FuncWithObject(object param1) {
-        return _delegate.FuncWithObject(param1);
-    }
-
-    public static string FuncWithParameters(int param1, string param2) {
-        return _delegate.FuncWithParameters(param1, param2);
+        public static string FuncWithParameters(int param1, string param2) {
+            return _delegate.FuncWithParameters(param1, param2);
+        }
     }
 }
