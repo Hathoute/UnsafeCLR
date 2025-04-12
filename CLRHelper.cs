@@ -10,25 +10,13 @@ namespace UnsafeCLR;
 
 public static class CLRHelper {
 
-    static readonly IInstructionPatcher instructionPatcher;
-    
-    static CLRHelper() {
-        instructionPatcher = RuntimeInformation.ProcessArchitecture switch {
-            System.Runtime.InteropServices.Architecture.X64 => new InstructionPatcherX64(),
-            System.Runtime.InteropServices.Architecture.Arm64 => new InstructionPatcherArm64(),
-            _ => throw new NotImplementedException($"Architecture {RuntimeInformation.ProcessArchitecture} is not supported")
-        };
-    }
-    
-    public static MethodBase GetMethodBase(MethodInfo methodInfo) {
-        if (methodInfo.DeclaringType == null) {
-            throw new NotImplementedException("GetMethodBase");
-        }
-        
-        return methodInfo.DeclaringType.GetMethod(methodInfo.Name)!;
-    }
+    private static readonly IInstructionPatcher InstructionPatcher = RuntimeInformation.ProcessArchitecture switch {
+        System.Runtime.InteropServices.Architecture.X64 => new InstructionPatcherX64(),
+        System.Runtime.InteropServices.Architecture.Arm64 => new InstructionPatcherArm64(),
+        _ => throw new NotImplementedException($"Architecture {RuntimeInformation.ProcessArchitecture} is not supported")
+    };
 
-    public static MethodReplacement ReplaceInstanceMethod(System.Type originalInstanceType, MethodInfo originalMethod, MethodInfo replacingMethod) {
+    public static MethodReplacement ReplaceInstanceMethod(Type originalInstanceType, MethodInfo originalMethod, MethodInfo replacingMethod) {
         ArgumentNullException.ThrowIfNull(originalInstanceType);
         ArgumentNullException.ThrowIfNull(originalMethod);
         ArgumentNullException.ThrowIfNull(replacingMethod);
@@ -44,7 +32,7 @@ public static class CLRHelper {
         ReplaceMethodInternal(dynamicOriginalMethod, originalMethod);
         var replacement = ReplaceMethodInternal(originalMethod, replacingMethod);
         
-        return new MethodReplacement(dynamicOriginalMethod, replacement[0], replacement[1], instructionPatcher);
+        return new MethodReplacement(dynamicOriginalMethod, replacement[0], replacement[1], InstructionPatcher);
     }
 
     public static MethodReplacement ReplaceStaticMethod(MethodInfo originalMethod, MethodInfo replacingMethod) {
@@ -59,7 +47,7 @@ public static class CLRHelper {
         ReplaceMethodInternal(dynamicOriginalMethod, originalMethod);
         var replacement = ReplaceMethodInternal(originalMethod, replacingMethod);
 
-        return new MethodReplacement(dynamicOriginalMethod, replacement[0], replacement[1], instructionPatcher);
+        return new MethodReplacement(dynamicOriginalMethod, replacement[0], replacement[1], InstructionPatcher);
     }
     
     private static unsafe IntPtr[] ReplaceMethodInternal(MethodInfo srcMethod, MethodInfo dstMethod) {
@@ -81,19 +69,15 @@ public static class CLRHelper {
         
         var srcMethodDesc = MethodDescOfMethod(srcMethod);
         var srcJmpInstruction = *(IntPtr*)srcMethodDesc.GetAddrOfSlot();
-        var srcOriginalJmpAddress = instructionPatcher.FindJumpAbsoluteAddress(srcJmpInstruction);
+        var srcOriginalJmpAddress = InstructionPatcher.FindJumpAbsoluteAddress(srcJmpInstruction);
         
         var dstMethodDesc = MethodDescOfMethod(dstMethod);
         var dstJmpInstruction = *(IntPtr*) dstMethodDesc.GetAddrOfSlot();
-        var dstNativeFuncAbsoluteAddr = instructionPatcher.FindJumpAbsoluteAddress(dstJmpInstruction);
+        var dstNativeFuncAbsoluteAddr = InstructionPatcher.FindJumpAbsoluteAddress(dstJmpInstruction);
         
-        instructionPatcher.PatchJumpWithAbsoluteAddress(srcJmpInstruction, dstNativeFuncAbsoluteAddr);
+        InstructionPatcher.PatchJumpWithAbsoluteAddress(srcJmpInstruction, dstNativeFuncAbsoluteAddr);
         
         return new [] {srcJmpInstruction, srcOriginalJmpAddress};
-    }
-
-    internal static CLR_MethodTable MethodTableOfType(System.Type type) {
-        return CLR_MethodTable.ofType(type.TypeHandle);
     }
 
     private static CLR_MethodDesc MethodDescOfMethod(MethodInfo methodInfo) {
@@ -119,7 +103,7 @@ public static class CLRHelper {
 
     }
     
-    private static DynamicMethod CreateDynamicMethod(System.Type? instanceType, MethodInfo clone) {
+    private static DynamicMethod CreateDynamicMethod(Type? instanceType, MethodInfo clone) {
         if ((clone.CallingConvention & ~(CallingConventions.Standard | CallingConventions.HasThis)) != 0) {
             throw new NotSupportedException($"Cannot create dynamic method for method of calling convention {clone.CallingConvention}, only 'Standard' and 'HasThis' are allowed");
         }
@@ -138,13 +122,13 @@ public static class CLRHelper {
         return dynamicMethod;
     }
 
-    private static System.Type[] DynamicMethodParameters(System.Type? instanceType, MethodInfo clone) {
+    private static Type[] DynamicMethodParameters(Type? instanceType, MethodInfo clone) {
         if (!clone.IsStatic && instanceType is null) {
             throw new ArgumentNullException(nameof(instanceType), "Instance type cannot be null when cloned method is not static");
         }
         
         var parameters = clone.GetParameters().Select(x => x.ParameterType).ToArray();
-        var typeParameters = new System.Type[(clone.IsStatic ? 0 : 1) + parameters.Length];
+        var typeParameters = new Type[(clone.IsStatic ? 0 : 1) + parameters.Length];
         if (!clone.IsStatic) {
             typeParameters[0] = instanceType!;
         }
