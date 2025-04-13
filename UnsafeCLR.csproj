@@ -6,6 +6,11 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
     </PropertyGroup>
+  
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseUrl>https://github.com/Hathoute/UnsafeCLR/blob/main/LICENSE.md</PackageLicenseUrl>
+  </PropertyGroup>
 
     <ItemGroup>
       <Compile Remove="Tests\**" />

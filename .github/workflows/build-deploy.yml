@@ -1,0 +1,29 @@
+name: .NET Build and Publish
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Pack NuGet package
+        run: |
+          dotnet pack UnsafeCLR.csproj \
+          --configuration Release \
+          -p:PackageVersion=${{ github.ref_name }} \
+          -p:RepositoryUrl=https://github.com/${{ github.repository }} \
+          -o packages
+      
+      - name: Publish NuGet package
+        run: dotnet nuget push packages/*.nupkg --api-key ${{ secrets.NUGET_API_SECRET }} --source https://api.nuget.org/v3/index.json
