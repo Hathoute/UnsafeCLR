@@ -29,7 +29,7 @@ internal unsafe class InstructionPatcherArm64 : IInstructionPatcher {
     }
     
     private static bool IsLdrLiteralArm64Instruction(int instruction, out int imm19, out int rt) {
-        if ((instruction & Arm64LdrLiteralSignature) != Arm64LdrLiteralSignature) {
+        if (!HasSameSignature(instruction, Arm64LdrLiteralSignature, 0xFF << 24)) {
             imm19 = 0;
             rt = 0;
             return false;
@@ -38,5 +38,9 @@ internal unsafe class InstructionPatcherArm64 : IInstructionPatcher {
         imm19 = (instruction & 0xFFFFFF) >> 5;
         rt = instruction & 0b11111;
         return true;
+    }
+    
+    private static bool HasSameSignature(int instruction, int signature, int mask) {
+        return ((instruction ^ signature) & mask) == 0;
     }
 }
