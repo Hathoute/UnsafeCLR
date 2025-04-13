@@ -31,7 +31,7 @@ dotnet add package UnsafeCLR
 
 ## API
 
-### `ReplaceInstanceMethod`
+### `UnsafeCLR.ReplaceInstanceMethod`
 
 ```csharp
 public static MethodReplacement ReplaceInstanceMethod(
@@ -43,7 +43,7 @@ public static MethodReplacement ReplaceInstanceMethod(
 
 - Replaces an **instance method** at runtime.
 
-### `ReplaceStaticMethod`
+### `UnsafeCLR.ReplaceStaticMethod`
 
 ```csharp
 public static MethodReplacement ReplaceStaticMethod(
@@ -57,16 +57,15 @@ public static MethodReplacement ReplaceStaticMethod(
 
 ## Warnings
 
-- This library uses low-level hacks and may break with future CLR versions.
+- This library uses low-level patching and may break with future CLR versions.
 - Not suitable for use in high-security or production-critical environments.
 - Ensure method signatures match exactly (return types and parameters).
 
 
 ## Example Use Cases
 
-- Unit testing and mocking legacy methods
+- Mocking static methods
 - Hot-fixing logic in running apps (debugging/instrumentation)
-- Intercepting third-party method calls in plugins or modding environments
 
 
 ### Example: Replace an Instance Method
@@ -91,17 +90,17 @@ class Program {
         return param1 * param1;
     }
 
-    public static void main() {
+    public static void Main() {
         var instance = new MyClass();
         using (var replacement = CLRHelper.ReplaceInstanceMethod(typeof(MyClass), GetMethodInfo<int, int>(instance.MyFunc), GetMethodInfo<MyClass, int, int>(MyReplacement))) {
             Console.WriteLine("Inside 'using'");
-            Console.WriteLine($"instance.MyFunc = {instance.MyFunc(2)}");
-            Console.WriteLine($"MyReplacement = {MyReplacement(instance, 2)}");
-            Console.WriteLine($"OriginalMethod.Invoke = { (int) replacement.OriginalMethod.Invoke(null, new object[] { instance, 2 }) }");
+            Console.WriteLine($"instance.MyFunc = {instance.MyFunc(10)}");
+            Console.WriteLine($"MyReplacement = {MyReplacement(instance, 10)}");
+            Console.WriteLine($"OriginalMethod.Invoke = { (int) replacement.OriginalMethod.Invoke(null, new object[] { instance, 10 }) }");
         }
         Console.WriteLine("Outside 'using'");
-        Console.WriteLine($"instance.MyFunc = {instance.MyFunc(2)}");
-        Console.WriteLine($"MyReplacement = {MyReplacement(instance, 2)}");
+        Console.WriteLine($"instance.MyFunc = {instance.MyFunc(10)}");
+        Console.WriteLine($"MyReplacement = {MyReplacement(instance, 10)}");
     }
 }
 ```

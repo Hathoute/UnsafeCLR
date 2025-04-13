@@ -7,6 +7,9 @@
         <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
     </PropertyGroup>
   
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
   <PropertyGroup>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseUrl>https://github.com/Hathoute/UnsafeCLR/blob/main/LICENSE.md</PackageLicenseUrl>
