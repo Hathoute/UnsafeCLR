@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ 'ubuntu-latest', 'windows-latest', 'macos-latest' ]
-        versions: [ '6.0.x:net6.0', '7.0.x:net7.0', '8.0.x:net8.0' ]
+        versions: [ '6.0.x:net6.0', '7.0.x:net7.0', '8.0.x:net8.0', '9.0.x:net9.0' ]
         exclude:
           # net6.0 on ARM64 architecture is not supported
           - os: 'macos-latest'
@@ -46,11 +46,11 @@ jobs:
         with:
           dotnet-version: ${{ env.dotnet-version }}
 
-      - name: Setup .NET 8 SDK (builder)
-        if: env.dotnet-version != '8.0.x'
+      - name: Setup .NET 9 SDK (builder)
+        if: env.dotnet-version != '9.0.x'
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '9.0.x'
 
       - name: Restore dependencies
         run: dotnet restore -p:TargetFramework=${{ env.framework }}
