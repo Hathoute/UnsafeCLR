@@ -4,7 +4,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
+        <TargetFrameworks>net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
     </PropertyGroup>
   
   <ItemGroup>
@@ -25,6 +25,11 @@
 
     <ItemGroup>
       <None Remove="Tests\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="NLog" Version="5.4.0" />
+      <PackageReference Include="NLog.Extensions.Logging" Version="5.4.0" />
     </ItemGroup>
 
 </Project>

@@ -1,11 +1,18 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using NLog;
 
 namespace Tests;
 
 internal static class TestHelpers {
-    // https://stackoverflow.com/questions/9382216/get-methodinfo-from-a-method-reference-c-sharp
+
+    static TestHelpers(){
+        LogManager.Setup().LoadConfiguration(builder => {
+            builder.ForLogger().FilterMinLevel(LogLevel.Debug).WriteToConsole();
+        });
+    }
     
+    // https://stackoverflow.com/questions/9382216/get-methodinfo-from-a-method-reference-c-sharp
     internal static MethodInfo GetMethodInfo(Action fun) => fun.Method;
     internal static MethodInfo GetMethodInfo<T>(Action<T> fun) => fun.Method;
     internal static MethodInfo GetMethodInfo<T1, T2>(Action<T1, T2> fun) => fun.Method;

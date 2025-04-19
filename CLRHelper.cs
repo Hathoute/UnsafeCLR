@@ -3,8 +3,7 @@ using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using UnsafeCLR.Architecture;
-using UnsafeCLR.CLR.Method;
-using UnsafeCLR.CLR.Type;
+using UnsafeCLR.CLR;
 
 namespace UnsafeCLR;
 
@@ -80,11 +79,11 @@ public static class CLRHelper {
         return new [] {srcJmpInstruction, srcOriginalJmpAddress};
     }
 
-    private static CLR_MethodDesc MethodDescOfMethod(MethodInfo methodInfo) {
+    private static IMethodDesc MethodDescOfMethod(MethodInfo methodInfo) {
         var methodHandle = GetHandleForMethod(methodInfo);
         RuntimeHelpers.PrepareMethod(methodHandle);
         
-        return CLR_MethodDesc.ofMethod(methodHandle);
+        return CLRProvider.OfMethod(methodHandle);
     }
 
     private static RuntimeMethodHandle GetHandleForMethod(MethodInfo methodInfo) {
