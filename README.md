@@ -10,7 +10,7 @@
 - Replace **instance** methods at runtime
 - Replace **static** methods at runtime
 - Minimal and straightforward API
-- Compatible with modern .NET runtimes (tested on .NET 6/7/8/9)
+- Compatible with modern .NET runtimes (tested on .NET 6+)
 
 
 ## Limitations
