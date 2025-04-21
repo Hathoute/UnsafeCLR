@@ -15,28 +15,24 @@ jobs:
       fail-fast: false
       matrix:
         os: [ 'ubuntu-latest', 'windows-latest', 'macos-latest' ]
-        versions: [ '6.0.x:net6.0', '7.0.x:net7.0', '8.0.x:net8.0', '9.0.x:net9.0' ]
+        versions: [ '6', '7', '8', '9', '10' ]
         exclude:
           # net6.0 on ARM64 architecture is not supported
           - os: 'macos-latest'
-            versions: '6.0.x:net6.0'
+            versions: '6'
 
     steps:
       - name: Extract .NET version and framework
         if: matrix.os != 'windows-latest'
         run: |
-          IFS=":" read -r VERSION FRAMEWORK <<< "${{ matrix.versions }}"
-          echo "dotnet-version=$VERSION" >> "$GITHUB_ENV"
-          echo "framework=$FRAMEWORK" >> "$GITHUB_ENV"
+          echo "dotnet-version=${{ matrix.versions }}.0.x" >> "$GITHUB_ENV"
+          echo "framework=net${{ matrix.versions }}.0" >> "$GITHUB_ENV"
           
       - name: Extract .NET version and framework (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          $split = "${{ matrix.versions }}" -split ":"
-          $VERSION=$split[0]
-          $FRAMEWORK=$split[1]
-          echo "dotnet-version=$VERSION" >> $env:GITHUB_ENV
-          echo "framework=$FRAMEWORK" >> $env:GITHUB_ENV
+          echo "dotnet-version=${{ matrix.versions }}.0.x" >> $env:GITHUB_ENV
+          echo "framework=net${{ matrix.versions }}.0" >> $env:GITHUB_ENV
           
       - name: Checkout repository
         uses: actions/checkout@v4
